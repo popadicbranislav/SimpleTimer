@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onBeforeUnmount, Ref } from "vue";
+import { ref, reactive, computed, onBeforeUnmount, Ref, nextTick } from "vue";
 
 // defineProps<{ msg: string }>();
 const timer: Ref<number | null> = ref(null),
@@ -41,9 +41,23 @@ function timer_callback() {
   time.hours = hours;
 }
 
-function on_input(event: any, period_type: "hours" | "mins" | "secs") {
+function on_input(event: Event, period_type: "hours" | "mins" | "secs") {
+  event.preventDefault();
+
   // todo: validation of input
-  const value = parseInt(event.target.innerText);
+  if (!event || !event.target) return;
+  const target = event.target as HTMLDivElement;
+
+  if (!target.textContent) return;
+  console.log(target.textContent);
+
+  let value = parseInt(target.textContent);
+
+  if (value >= 60) {
+    value = 60;
+    console.log("value reduced", value);
+  }
+
   time[period_type] = value || 0;
 }
 
@@ -72,27 +86,61 @@ onBeforeUnmount(() => {
 
 <template>
   {{ "running: " + running }}<br />
-  {{ "timer: " + timer }}
+
   <main class="main">
     <div class="timer">
-      <span :contenteditable="!running" @input="on_input($event, 'hours')">{{
-        time.hours
-      }}</span>
+      <label text="Hours input">
+        <input
+          class="timer__input"
+          :disabled="running"
+          type="number"
+          step="1"
+          min="0"
+          max="99"
+          size="2"
+          required
+          placeholder="00"
+          v-model="time.hours"
+        />
+      </label>
       :
-      <span :contenteditable="!running" @input="on_input($event, 'mins')">{{
-        time.mins
-      }}</span>
+      <label text="Minutes input">
+        <input
+          class="timer__input"
+          :disabled="running"
+          type="number"
+          step="1"
+          min="0"
+          max="60"
+          size="2"
+          required
+          placeholder="00"
+          v-model="time.mins"
+        />
+      </label>
       :
-      <span :contenteditable="!running" @input="on_input($event, 'secs')">{{
-        time.secs
-      }}</span>
+      <label text="Seconds input">
+        <input
+          class="timer__input"
+          :disabled="running"
+          type="number"
+          step="1"
+          min="0"
+          max="99"
+          size="2"
+          required
+          placeholder="00"
+          v-model="time.secs"
+        />
+      </label>
     </div>
 
     <div class="controls">
       <button class="btn" @click="start_timer" :disabled="running">
-        start
+        Start
       </button>
-      <button class="btn" @click="stop_timer" :disabled="!running">stop</button>
+
+      <button class="btn" @click="stop_timer" :disabled="!running">Stop</button>
     </div>
   </main>
 </template>
@@ -112,8 +160,8 @@ onBeforeUnmount(() => {
   padding: 0.4em 1.2em;
   border-radius: 0.2em;
 
-  &:hover,
-  &:focus-visible {
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
     outline: 0.1em solid var(--clr-light);
     outline-offset: 0.1em;
   }
@@ -140,26 +188,37 @@ onBeforeUnmount(() => {
   margin: 0 auto;
   width: max-content;
   user-select: none;
+  display: flex;
+  gap: 0.3em;
 
-  // & > *::selection {
-  //   color: green;
-  //   background-color: red;
-  // }
+  &__input {
+    font-size: 3rem;
+    line-height: 1;
+    text-align: center;
+    background: 0;
+    color: var(--clr-light);
+    border: 0;
+    border-bottom: 0.1em solid var(--clr-light);
+    transition: color 200ms ease-in-out, border-color 200ms ease-in-out;
 
-  & > * {
-    transition: border-color 200ms ease-in-out;
-    transition: color 200ms ease-in-out;
-    border-bottom: 0.1em solid transparent;
-  }
+    &:disabled {
+      font-weight: var(--fw--bold);
+      border-bottom-color: transparent;
+    }
 
-  & > *[contenteditable="true"] {
-    border-bottom-color: var(--clr-light);
-  }
+    &:focus-within {
+      outline: none;
+      color: var(--clr-primary);
+      border-bottom-color: var(--clr-primary);
+    }
 
-  & > *:focus-within {
-    outline: none;
-    color: var(--clr-primary);
-    border-bottom-color: var(--clr-primary);
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      margin: 0;
+    }
   }
 }
 
